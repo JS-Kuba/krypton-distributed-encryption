@@ -50,7 +50,7 @@ class FileEncryptor:
         password = b"password"
 
         # Set up Scrypt with high parameters for slow key derivation
-        kdf = Scrypt(salt=salt, length=32, n=2**20, r=12, p=8)
+        kdf = Scrypt(salt=salt, length=32, n=2**20, r=6, p=6)
 
         # Derive a key from the password
         key = kdf.derive(password)
@@ -60,11 +60,11 @@ class FileEncryptor:
 
         # Pad the data to a multiple of the block size
         padder = padding.PKCS7(algorithms.AES.block_size).padder()
-        padded_data = padder.update(block.encode('utf-8')) + padder.finalize()
+        padded_data = padder.update(block['data'].encode('utf-8')) + padder.finalize()
 
         ciphertext = encryptor.update(padded_data) + encryptor.finalize()
 
-        return (ciphertext, key)
+        return (block['index'], ciphertext, key)
 
     def encrypt_file(self, file_path):
         cipher = ARC4.new(self.key)
@@ -81,3 +81,17 @@ class FileEncryptor:
         ciphertext = self.encrypt_file(file_path)
         with open(encrypted_file_path, 'wb') as f:
             f.write(ciphertext)
+
+    def decrypt_block(self, block):
+        # Now to decrypt
+        cipher = Cipher(algorithms.AES(block[2]), modes.ECB())
+        decryptor = cipher.decryptor()
+
+        # Decrypt the data
+        padded_data = decryptor.update(block[1]) + decryptor.finalize()
+
+        # Unpad the data
+        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+        data = unpadder.update(padded_data) + unpadder.finalize()
+
+        return (block[0], data)

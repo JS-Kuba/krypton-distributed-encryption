@@ -13,7 +13,7 @@ def encrypt_blocks(blocks, results_queue):
             break
 
         # Reverse the string and add it to the results queue
-        results_queue.put(fe.encrypt_block(block['data']))
+        results_queue.put(fe.encrypt_block(block))
 
 def encrypt_blocks_multithreaded(blocks_list, num_threads):
     # Create a queue to hold the input strings and a queue to hold the reversed strings
@@ -55,3 +55,12 @@ if __name__ == '__main__':
     print("Execution time:", execution_time, "seconds")
     print("Blocks: " + str(len(blocks_list)))
     print("Encrypted blocks: " + str(len(encrypted_blocks)))
+
+
+    decrypted_blocks = []
+    for block in encrypted_blocks:
+        decrypted_blocks.append(fe.decrypt_block(block))
+
+    sorted_list = sorted(decrypted_blocks, key=lambda x: x[0])
+
+    print(sorted_list)
