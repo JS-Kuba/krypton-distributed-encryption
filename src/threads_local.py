@@ -1,6 +1,7 @@
 from encryption.file_encryptor import FileEncryptor
 import threading
 import queue
+import time
 
 def encrypt_blocks(blocks, results_queue):
     while True:
@@ -43,10 +44,14 @@ def encrypt_blocks_multithreaded(blocks_list, num_threads):
 
 if __name__ == '__main__':
     fe = FileEncryptor()
-    input_file_path = 'data/crime-and-punishment.txt'
+    input_file_path = '../data/crime-and-punishment.txt'
     blocks_list = fe.split_file_to_list(input_file_path)
 
     num_threads = 3
+    start_time = time.time()  # Get the current time
     encrypted_blocks = encrypt_blocks_multithreaded(blocks_list, num_threads)
+    end_time = time.time()  # Get the current time again
+    execution_time = end_time - start_time  # Calculate the execution time
+    print("Execution time:", execution_time, "seconds")
     print("Blocks: " + str(len(blocks_list)))
     print("Encrypted blocks: " + str(len(encrypted_blocks)))

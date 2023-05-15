@@ -1,6 +1,11 @@
 from tkinter import filedialog
 from Crypto.Cipher import ARC4
 import os
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+from os import urandom
 
 class FileEncryptor:
     key = b'my secret key' 
@@ -41,9 +46,25 @@ class FileEncryptor:
         return blocks
     
     def encrypt_block(self, block):
-        cipher = ARC4.new(self.key)
-        ciphertext = cipher.encrypt(block)
-        return ciphertext
+        salt = urandom(16)
+        password = b"password"
+
+        # Set up Scrypt with high parameters for slow key derivation
+        kdf = Scrypt(salt=salt, length=32, n=2**20, r=12, p=8)
+
+        # Derive a key from the password
+        key = kdf.derive(password)
+
+        cipher = Cipher(algorithms.AES(key), modes.ECB())
+        encryptor = cipher.encryptor()
+
+        # Pad the data to a multiple of the block size
+        padder = padding.PKCS7(algorithms.AES.block_size).padder()
+        padded_data = padder.update(block.encode('utf-8')) + padder.finalize()
+
+        ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+
+        return (ciphertext, key)
 
     def encrypt_file(self, file_path):
         cipher = ARC4.new(self.key)
