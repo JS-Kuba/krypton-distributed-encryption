@@ -1,0 +1,16 @@
+{
+    "hosts": [
+      {
+        "host": "station1",
+        "port": 22,
+        "username": "fedora",
+        "password": "student"
+      },
+      {
+        "host": "station2",
+        "port": 22,
+        "username": "fedora",
+        "password": "student"
+      }
+    ]
+  }
