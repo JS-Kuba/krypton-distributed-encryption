@@ -6,7 +6,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 from os import urandom
-import re
 
 class FileEncryptor:
     key = b'my secret key' 

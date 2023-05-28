@@ -1,7 +1,7 @@
 import socket
 import threading
-#from encryption.block_encryptor import BlockEncryptor
 import json
+import ast
 
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives import hashes
@@ -11,16 +11,25 @@ from os import urandom
 
 HOST = '127.0.0.1'
 PORT = 12345
-BUFFER_SIZE = 1024
+BUFFER_SIZE = 1064
 
 
 class BlockEncryptor:
+
+    def read_block_tuple(self, block_string):
+        return ast.literal_eval(block_string)
+
+
     def encrypt_block(self, block):
         salt = urandom(16)
         password = b"password"
 
+        block_tuple = self.read_block_tuple(block_string=block)
+        block_index = block_tuple[0]
+        block_text = block_tuple[1]
+
         # Set up Scrypt with high parameters for slow key derivation
-        kdf = Scrypt(salt=salt, length=32, n=2**20, r=6, p=6)
+        kdf = Scrypt(salt=salt, length=32, n=2**10, r=6, p=6)
 
         # Derive a key from the password
         key = kdf.derive(password)
@@ -30,12 +39,11 @@ class BlockEncryptor:
 
         # Pad the data to a multiple of the block size
         padder = padding.PKCS7(algorithms.AES.block_size).padder()
-        padded_data = padder.update(block.encode('utf-8')) + padder.finalize()
+        padded_data = padder.update(block_text.encode('utf-8')) + padder.finalize()
 
         ciphertext = encryptor.update(padded_data) + encryptor.finalize()
 
-        # return {'index': block['index'], 'ciphertext': ciphertext, 'key': key}
-        return ciphertext
+        return (block_index, ciphertext, key)
 
     
     def decrypt_block(self, block):

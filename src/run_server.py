@@ -4,6 +4,8 @@ import subprocess
 import re
 import os
 import queue
+import time
+import ast
 
 from encryption.file_encryptor import FileEncryptor
 
@@ -19,10 +21,41 @@ class Server:
         self.IPv4 = '127.0.0.1'
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.data_dir = os.path.join(os.path.dirname(self.current_dir), "data")
+        self.results_queue = queue.Queue()
 
     def run_encryption(self):
         for thread in self.client_threads:
             thread.start()
+        # czy to jest konieczne skoro będzie jeszcze odszyfrowanie?
+        for thread in self.client_threads:
+            thread.join()
+        self.sort_queue()
+
+    def read_block_tuple(self, block_string):
+        return ast.literal_eval(block_string)
+
+    def sort_queue(self):
+        # Convert the queue to a list
+        elements = list(self.results_queue.queue)
+        elements_tuples = [self.read_block_tuple(block) for block in elements]
+
+        with open("results_unsorted.txt", 'w') as f:
+            for element in elements_tuples:
+                f.write(f"index: {element[0]}\nciphertext: {element[1]}\nkey: {element[2]}" + '\n')
+
+        # Sort the list
+        sorted_elements = sorted(elements_tuples, key=lambda x: x[0])
+
+        # Create a new queue
+        sorted_queue = queue.Queue()
+
+        # Enqueue the sorted elements into the new queue
+        with open("results_sorted.txt", 'w') as f:
+            for element in sorted_elements:
+                sorted_queue.put(element)
+                f.write(f"index: {element[0]}\nciphertext: {element[1]}\nkey: {element[2]}" + '\n')
+
+        return sorted_queue
 
 
     def obtain_ipv4(self):
@@ -63,10 +96,14 @@ class Server:
                 if worker_available:
                     print(f"Fetching a block from the queue... {input_queue.qsize()} items left to distribute")
                     block = input_queue.get()
+                    block_index = block['index']
+                    block_data = block['data']
+                    block_tuple = (block_index, block_data)
+
                     print("Block fetched. Preparing for sending...")
                     try:
-                        # sending data
-                        client_socket.sendall(str(block["data"]).encode("utf-8"))
+                        # sending data to the worker client
+                        client_socket.sendall(str(block_tuple).encode("utf-8"))
                         worker_available = False
                         print("Block sent. Waiting for response.")
                     except Exception as e:
@@ -78,19 +115,23 @@ class Server:
                         data = client_socket.recv(self.BUFFER_SIZE).decode('utf-8')
                         if data:
                             print(f'Received from {client_address}: {data}')
-                            results_queue.put(data)
+                            results_queue.put(data) # MOŻE LEPIEJ ZAMIENIC NA LISTE?
+
                             worker_available = True
                             waiting_for_response = False
                         else:
+                            # --------------------------
+                            # TUTAJ DO POPRAWY
                             # If data is empty, the client has closed the connection
-                            print("Data received from client is empty.")
+                            time.sleep(2)
+                            print("Data received from client is empty. Removing client.")
                             self.remove_client(client_socket)
                             break
                     except Exception as e:
                         print(f'Error: {e}')
                         self.remove_client(client_socket)
                         break
-            print(f"Queue size: {input_queue.qsize()}")
+            print(f"Queue size: {input_queue.qsize()}. Worker finished encoding.")
 
         except Exception as e:
             print(f"Error in sending message to the client: {e}")
@@ -126,7 +167,7 @@ class Server:
         Starts the server and listens for incoming connections
         """
         input_queue = self.define_job_queue()
-        results_queue = queue.Queue()
+        
         
         print(f"Server will be run on: {self.IPv4}")
         # Create socket
@@ -146,12 +187,11 @@ class Server:
 
                
                 # Start a new thread to handle the client
-                client_thread = threading.Thread(target=self.handle_client, args=(client_socket, client_address, input_queue, results_queue))
+                client_thread = threading.Thread(target=self.handle_client, args=(client_socket, client_address, input_queue, self.results_queue))
                 self.client_threads.append(client_thread)
 
             except Exception as e:
                 print(f'Error: {e}')
                 break
-
         # Close server socket
         server_socket.close()
