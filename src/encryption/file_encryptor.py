@@ -14,9 +14,9 @@ class FileEncryptor:
     def get_bytes(self, text, encoding="utf-8"):
         return len(text.encode(encoding))
     
-    def split_file_to_list(self, file_path, block_size=500 * 1024):
+    def split_file_to_list(self, file_path, block_size=1024):
         if not os.path.isfile(file_path):
-            print("Error: File not found.")
+            print(f"Error: File not found in path {file_path}.")
             return
 
         blocks = []
@@ -43,7 +43,7 @@ class FileEncryptor:
             if block_data:
                 block_dict = {"index": block_index, "data": block_data}
                 blocks.append(block_dict)
-                #print(f"Created block {block_index}")
+            print(f"Created blocks: {len(blocks)}")
         return blocks
     
     def encrypt_block(self, block):

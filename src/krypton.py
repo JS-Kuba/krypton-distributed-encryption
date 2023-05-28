@@ -3,6 +3,10 @@ from encryption.file_encryptor import FileEncryptor
 from utils.music_player import MusicPlayer
 from run_server import Server
 import threading
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+assets_dir = os.path.join(current_dir, "assets")
 
 def start_server_thread(event, server):
     # Create and start the server instance on a new thread
@@ -27,7 +31,7 @@ root.resizable(False, False)
 
 
 # Set the background image
-bg_image = tk.PhotoImage(file="assets/krypton1.png")
+bg_image = tk.PhotoImage(file=os.path.join(assets_dir, "krypton1.png"))
 bg_label = tk.Label(root, image=bg_image)
 bg_label.place(relwidth=1, relheight=1)
 

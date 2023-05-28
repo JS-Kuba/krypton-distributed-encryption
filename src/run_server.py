@@ -9,12 +9,16 @@ from encryption.file_encryptor import FileEncryptor
 
 class Server:
 
+
     def __init__(self):
         self.PORT = 12345
         self.BUFFER_SIZE = 7024
         self.clients = []
         self.client_threads = []
-        self.IPv4 = self.obtain_ipv4()
+        #self.IPv4 = self.obtain_ipv4()
+        self.IPv4 = '127.0.0.1'
+        self.current_dir = os.path.dirname(os.path.abspath(__file__))
+        self.data_dir = os.path.join(os.path.dirname(self.current_dir), "data")
 
     def run_encryption(self):
         for thread in self.client_threads:
@@ -52,33 +56,41 @@ class Server:
         Thread function to handle each client connection
         """
         print("I am ready to work!")
+        worker_available = True
+        waiting_for_response = False
         try:
             while not input_queue.empty():
-                print(f"Fetching a block from the queue... {input_queue.qsize()} items left to distribute")
-                block = input_queue.get()
-                print("Block fetched. Preparing for sending...")
-                try:
-                    # sending data
-                    client_socket.sendall(str(block["data"]).encode("utf-8"))
-                    print("Block sent. Waiting for response.")
-                except Exception as e:
-                    print(f"Error occurred while sending: {str(e)}")
-
-                while True:
+                if worker_available:
+                    print(f"Fetching a block from the queue... {input_queue.qsize()} items left to distribute")
+                    block = input_queue.get()
+                    print("Block fetched. Preparing for sending...")
+                    try:
+                        # sending data
+                        client_socket.sendall(str(block["data"]).encode("utf-8"))
+                        worker_available = False
+                        print("Block sent. Waiting for response.")
+                    except Exception as e:
+                        print(f"Error occurred while sending: {str(e)}")
+                    waiting_for_response = True
+                while waiting_for_response:
                     try:
                         # Receive message from client
                         data = client_socket.recv(self.BUFFER_SIZE).decode('utf-8')
                         if data:
                             print(f'Received from {client_address}: {data}')
                             results_queue.put(data)
+                            worker_available = True
+                            waiting_for_response = False
                         else:
                             # If data is empty, the client has closed the connection
+                            print("Data received from client is empty.")
                             self.remove_client(client_socket)
                             break
                     except Exception as e:
                         print(f'Error: {e}')
                         self.remove_client(client_socket)
                         break
+            print(f"Queue size: {input_queue.qsize()}")
 
         except Exception as e:
             print(f"Error in sending message to the client: {e}")
@@ -97,7 +109,7 @@ class Server:
 
     def define_job_queue(self):
         fe = FileEncryptor()
-        input_file_path = '../data/crime-and-punishment.txt'
+        input_file_path = os.path.join(self.data_dir, 'crime-and-punishment.txt')
         blocks_list = fe.split_file_to_list(input_file_path)
 
         input_queue = queue.Queue()
