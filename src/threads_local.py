@@ -44,7 +44,7 @@ def encrypt_blocks_multithreaded(blocks_list, num_threads):
 
 if __name__ == '__main__':
     fe = FileEncryptor()
-    input_file_path = '../data/crime-and-punishment.txt'
+    input_file_path = 'data/crime-and-punishment.txt'
     blocks_list = fe.split_file_to_list(input_file_path)
 
     num_threads = 3
@@ -56,7 +56,8 @@ if __name__ == '__main__':
     print("Blocks: " + str(len(blocks_list)))
     print("Encrypted blocks: " + str(len(encrypted_blocks)))
 
-
+    print(encrypted_blocks)
+    time.sleep(5)
     decrypted_blocks = []
     for block in encrypted_blocks:
         decrypted_blocks.append(fe.decrypt_block(block))
