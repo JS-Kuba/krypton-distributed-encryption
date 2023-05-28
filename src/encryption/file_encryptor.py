@@ -64,7 +64,7 @@ class FileEncryptor:
 
         ciphertext = encryptor.update(padded_data) + encryptor.finalize()
 
-        return (block['index'], ciphertext, key)
+        return {"index": block["index"], "ciphertext": ciphertext, "key": key}
 
     def encrypt_file(self, file_path):
         cipher = ARC4.new(self.key)
@@ -84,14 +84,14 @@ class FileEncryptor:
 
     def decrypt_block(self, block):
         # Now to decrypt
-        cipher = Cipher(algorithms.AES(block[2]), modes.ECB())
+        cipher = Cipher(algorithms.AES(block["key"]), modes.ECB())
         decryptor = cipher.decryptor()
 
         # Decrypt the data
-        padded_data = decryptor.update(block[1]) + decryptor.finalize()
+        padded_data = decryptor.update(block["ciphertext"]) + decryptor.finalize()
 
         # Unpad the data
         unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
         data = unpadder.update(padded_data) + unpadder.finalize()
 
-        return (block[0], data)
+        return (block["index"], data)
