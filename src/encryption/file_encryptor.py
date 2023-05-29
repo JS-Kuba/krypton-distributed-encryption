@@ -1,11 +1,7 @@
-from tkinter import filedialog
-from Crypto.Cipher import ARC4
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from os import urandom
 
 class FileEncryptor:
     key = b'my secret key' 
@@ -46,7 +42,7 @@ class FileEncryptor:
         return blocks
     
     def encrypt_block(self, block):
-        salt = urandom(16)
+        salt = os.urandom(16)
         password = b"password"
 
         # Set up Scrypt with high parameters for slow key derivation
@@ -66,21 +62,21 @@ class FileEncryptor:
 
         return (block['index'], ciphertext, key)
 
-    def encrypt_file(self, file_path):
-        cipher = ARC4.new(self.key)
-        with open(file_path, 'rb') as f:
-            plaintext = f.read()
-        ciphertext = cipher.encrypt(plaintext)
-        return ciphertext
+    # def encrypt_file(self, file_path):
+    #     cipher = ARC4.new(self.key)
+    #     with open(file_path, 'rb') as f:
+    #         plaintext = f.read()
+    #     ciphertext = cipher.encrypt(plaintext)
+    #     return ciphertext
 
-    def process_file(self):
-        file_path = filedialog.askopenfilename()
-        dir_path = os.path.dirname(file_path)
-        encrypted_file_path = os.path.join(dir_path, 'encrypted.txt')
+    # def process_file(self):
+    #     file_path = filedialog.askopenfilename()
+    #     dir_path = os.path.dirname(file_path)
+    #     encrypted_file_path = os.path.join(dir_path, 'encrypted.txt')
 
-        ciphertext = self.encrypt_file(file_path)
-        with open(encrypted_file_path, 'wb') as f:
-            f.write(ciphertext)
+    #     ciphertext = self.encrypt_file(file_path)
+    #     with open(encrypted_file_path, 'wb') as f:
+    #         f.write(ciphertext)
 
     def decrypt_block(self, block):
         # Now to decrypt

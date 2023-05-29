@@ -1,7 +1,7 @@
 import socket
 import threading
-import json
 import ast
+import subprocess
 
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives import hashes
@@ -12,6 +12,14 @@ from os import urandom
 HOST = '127.0.0.1'
 PORT = 12345
 BUFFER_SIZE = 1064
+
+# Use the subprocess module to install required module
+# try:
+#     subprocess.check_call(["pip", "install", "cryptography"])
+#     print(f"Successfully installed cryptography")
+# except subprocess.CalledProcessError:
+#     print(f"Failed to install cryptography")
+
 
 
 class BlockEncryptor:
