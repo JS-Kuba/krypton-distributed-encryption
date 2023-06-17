@@ -72,22 +72,34 @@ class Worker:
     
     def __init__(self) -> None:
         self.be = BlockEncryptor()
+        self.decrypt = False
 
     def handle_received_blocks(self, client_socket):
         while True:
             try:
                 data = client_socket.recv(BUFFER_SIZE).decode('utf-8')
 
+                if data == "decrypt":
+                    self.decrypt = True
+                    continue
+
                 if data:
                     block = data
                     print(f"Worker received: {block}")
-                    encrypted_block = self.be.encrypt_block(block)
-                    print(f"Worker encrypted the block: {encrypted_block}")
-                    client_socket.sendall(str(encrypted_block).encode('utf-8'))
+                    if self.decrypt == False:
+                        encrypted_block = self.be.encrypt_block(block)
+                        print(f"Worker encrypted the block: {encrypted_block}")
+                        client_socket.sendall(str(encrypted_block).encode('utf-8'))
+                    else:
+                        decrypted_block = self.be.decrypt_block(block)
+                        print(f"Worker decrypted the block: {decrypted_block}")
+                        client_socket.sendall(str(decrypted_block).encode('utf-8'))
+
                 else:
                     print("Closing client socket.")
                     client_socket.close()
                     break
+
             except Exception as e:
                 print(f'Error: {e}')
                 client_socket.close()
