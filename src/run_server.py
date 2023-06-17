@@ -29,7 +29,7 @@ class Server:
         # czy to jest konieczne skoro będzie jeszcze odszyfrowanie?
         for thread in self.client_threads:
             thread.join()
-        self.sort_queue()
+        sorted_queue = self.sort_queue()
 
     def read_block_tuple(self, block_string):
         return ast.literal_eval(block_string)

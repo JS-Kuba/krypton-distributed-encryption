@@ -19,7 +19,7 @@ def run_encryption():
 file_encryptor = FileEncryptor()
 server = Server()
 
-music_player = MusicPlayer(volume=0.3)
+music_player = MusicPlayer(volume=0.0)
 music_player.play_music()
 
 # Create the main window
