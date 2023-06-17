@@ -1,21 +1,17 @@
-from tkinter import filedialog
-from Crypto.Cipher import ARC4
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from os import urandom
 
 class FileEncryptor:
     key = b'my secret key' 
 
     def get_bytes(self, text, encoding="utf-8"):
         return len(text.encode(encoding))
-
-    def split_file_to_list(self, file_path, block_size=500 * 1024):
+    
+    def split_file_to_list(self, file_path, block_size=1024):
         if not os.path.isfile(file_path):
-            print("Error: File not found.")
+            print(f"Error: File not found in path {file_path}.")
             return
 
         blocks = []
@@ -42,11 +38,11 @@ class FileEncryptor:
             if block_data:
                 block_dict = {"index": block_index, "data": block_data}
                 blocks.append(block_dict)
-                #print(f"Created block {block_index}")
+            print(f"Created blocks: {len(blocks)}")
         return blocks
     
     def encrypt_block(self, block):
-        salt = urandom(16)
+        salt = os.urandom(16)
         password = b"password"
 
         # Set up Scrypt with high parameters for slow key derivation
@@ -66,21 +62,21 @@ class FileEncryptor:
 
         return {"index": block["index"], "ciphertext": ciphertext, "key": key}
 
-    def encrypt_file(self, file_path):
-        cipher = ARC4.new(self.key)
-        with open(file_path, 'rb') as f:
-            plaintext = f.read()
-        ciphertext = cipher.encrypt(plaintext)
-        return ciphertext
+    # def encrypt_file(self, file_path):
+    #     cipher = ARC4.new(self.key)
+    #     with open(file_path, 'rb') as f:
+    #         plaintext = f.read()
+    #     ciphertext = cipher.encrypt(plaintext)
+    #     return ciphertext
 
-    def process_file(self):
-        file_path = filedialog.askopenfilename()
-        dir_path = os.path.dirname(file_path)
-        encrypted_file_path = os.path.join(dir_path, 'encrypted.txt')
+    # def process_file(self):
+    #     file_path = filedialog.askopenfilename()
+    #     dir_path = os.path.dirname(file_path)
+    #     encrypted_file_path = os.path.join(dir_path, 'encrypted.txt')
 
-        ciphertext = self.encrypt_file(file_path)
-        with open(encrypted_file_path, 'wb') as f:
-            f.write(ciphertext)
+    #     ciphertext = self.encrypt_file(file_path)
+    #     with open(encrypted_file_path, 'wb') as f:
+    #         f.write(ciphertext)
 
     def decrypt_block(self, block):
         # Now to decrypt

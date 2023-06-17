@@ -6,7 +6,7 @@ class MusicPlayer:
         pygame.mixer.music.set_volume(volume)
 
     def play_music(self):
-        pygame.mixer.music.load("src/assets/levo.mp3")
+        pygame.mixer.music.load("assets/levo.mp3")
         pygame.mixer.music.play(loops=-1)
 
     def stop_music(self):
