@@ -17,11 +17,14 @@ class Server:
         self.BUFFER_SIZE = 7024
         self.clients = []
         self.client_threads = []
+        self.decryption_threads = []
         #self.IPv4 = self.obtain_ipv4()
         self.IPv4 = '127.0.0.1'
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.data_dir = os.path.join(os.path.dirname(self.current_dir), "data")
         self.results_queue = queue.Queue()
+        self.sorted_queue = queue.Queue()
+        self.decrypted_queue = queue.Queue()
 
     def run_encryption(self):
         for thread in self.client_threads:
@@ -29,7 +32,8 @@ class Server:
         # czy to jest konieczne skoro będzie jeszcze odszyfrowanie?
         for thread in self.client_threads:
             thread.join()
-        sorted_queue = self.sort_queue()
+        self.sorted_queue = self.sort_queue()
+        
 
     def read_block_tuple(self, block_string):
         return ast.literal_eval(block_string)
@@ -115,7 +119,7 @@ class Server:
                         data = client_socket.recv(self.BUFFER_SIZE).decode('utf-8')
                         if data:
                             print(f'Received from {client_address}: {data}')
-                            results_queue.put(data) # MOŻE LEPIEJ ZAMIENIC NA LISTE?
+                            results_queue.put(data)
 
                             worker_available = True
                             waiting_for_response = False
@@ -138,6 +142,10 @@ class Server:
             client_socket.close()
             self.remove_client(client_socket)
             
+
+    def decrypt(self, client_socket, client_address, decrypted_queue):
+        pass
+
 
     def remove_client(self, client_socket):
         """
@@ -189,6 +197,9 @@ class Server:
                 # Start a new thread to handle the client
                 client_thread = threading.Thread(target=self.handle_client, args=(client_socket, client_address, input_queue, self.results_queue))
                 self.client_threads.append(client_thread)
+
+                decryption_thread = threading.Thread(target=self.decrypt, args=(client_socket, client_address, self.decrypted_queue))
+                self.decryption_threads.append(decryption_thread)
 
             except Exception as e:
                 print(f'Error: {e}')
