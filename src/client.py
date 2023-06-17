@@ -11,7 +11,7 @@ from os import urandom
 
 HOST = '127.0.0.1'
 PORT = 12345
-BUFFER_SIZE = 1064
+BUFFER_SIZE = 7064
 
 # Use the subprocess module to install required module
 # try:
@@ -32,7 +32,7 @@ class BlockEncryptor:
         salt = urandom(16)
         password = b"password"
 
-        block_tuple = self.read_block_tuple(block_string=block)
+        block_tuple = self.read_block_tuple(block)
         block_index = block_tuple[0]
         block_text = block_tuple[1]
 
@@ -56,17 +56,23 @@ class BlockEncryptor:
     
     def decrypt_block(self, block):
         # Now to decrypt
-        cipher = Cipher(algorithms.AES(block['key']), modes.ECB())
+        block_tuple = self.read_block_tuple(block)
+        block_index = block_tuple[0]
+        block_text = block_tuple[1]
+        block_key = block_tuple[2]
+
+        cipher = Cipher(algorithms.AES(block_key), modes.ECB())
+
         decryptor = cipher.decryptor()
 
         # Decrypt the data
-        padded_data = decryptor.update(block['ciphertext']) + decryptor.finalize()
+        padded_data = decryptor.update(block_text) + decryptor.finalize()
 
         # Unpad the data
         unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
         data = unpadder.update(padded_data) + unpadder.finalize()
 
-        return (block['index'], data)
+        return (block_index, data)
     
 class Worker:
     

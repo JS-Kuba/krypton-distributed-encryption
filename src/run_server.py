@@ -25,27 +25,52 @@ class Server:
         self.results_queue = queue.Queue()
         self.sorted_queue = queue.Queue()
         self.decrypted_queue = queue.Queue()
+        self.mode = "encrypt"
+
+    def signal_decryption(self):
+        self.mode = "decrypt"
+        for client in self.clients:
+            client['client_socket'].sendall(str(self.mode).encode("utf-8"))
 
     def run_encryption(self):
+        print("Started ENCRYPTION")
         for thread in self.client_threads:
             thread.start()
-        # czy to jest konieczne skoro będzie jeszcze odszyfrowanie?
         for thread in self.client_threads:
             thread.join()
         self.sorted_queue = self.sort_queue()
+
+        print("Started DECRYPTION")
+        self.signal_decryption()
+        
+        for thread in self.decryption_threads:
+            thread.start()
+        for thread in self.decryption_threads:
+            thread.join()
+        self.sorted_queue = self.sort_queue()
+
         
 
     def read_block_tuple(self, block_string):
         return ast.literal_eval(block_string)
 
+
     def sort_queue(self):
         # Convert the queue to a list
-        elements = list(self.results_queue.queue)
+        if self.mode == "decrypt":
+            queue_to_sort = self.decrypted_queue
+        else:
+            queue_to_sort = self.results_queue
+
+        elements = list(queue_to_sort.queue)
         elements_tuples = [self.read_block_tuple(block) for block in elements]
 
-        with open("results_unsorted.txt", 'w') as f:
+        with open(f"results_unsorted_{self.mode}.txt", 'w') as f:
             for element in elements_tuples:
-                f.write(f"index: {element[0]}\nciphertext: {element[1]}\nkey: {element[2]}" + '\n')
+                if self.mode == "decrypt":
+                    f.write(f"index: {element[0]}\nciphertext: {element[1]}" + '\n')
+                else:
+                    f.write(f"index: {element[0]}\nciphertext: {element[1]}\nkey: {element[2]}" + '\n')
 
         # Sort the list
         sorted_elements = sorted(elements_tuples, key=lambda x: x[0])
@@ -54,13 +79,15 @@ class Server:
         sorted_queue = queue.Queue()
 
         # Enqueue the sorted elements into the new queue
-        with open("results_sorted.txt", 'w') as f:
+        with open(f"results_sorted_{self.mode}.txt", 'w') as f:
             for element in sorted_elements:
+                if self.mode == "decrypt":
+                    f.write(f"index: {element[0]}\nciphertext: {element[1]}" + '\n')
+                else:
+                    f.write(f"index: {element[0]}\nciphertext: {element[1]}\nkey: {element[2]}" + '\n')
                 sorted_queue.put(element)
-                f.write(f"index: {element[0]}\nciphertext: {element[1]}\nkey: {element[2]}" + '\n')
 
         return sorted_queue
-
 
     def obtain_ipv4(self):
         try:
@@ -100,9 +127,18 @@ class Server:
                 if worker_available:
                     print(f"Fetching a block from the queue... {input_queue.qsize()} items left to distribute")
                     block = input_queue.get()
-                    block_index = block['index']
-                    block_data = block['data']
-                    block_tuple = (block_index, block_data)
+
+                    if self.mode == "decrypt":
+                        block = self.read_block_tuple(block)
+
+                    block_index = block[0]
+                    block_data = block[1]
+
+                    if self.mode == "decrypt":
+                        block_key = block[2]
+                        block_tuple = (block_index, block_data, block_key)
+                    else:
+                        block_tuple = (block_index, block_data)
 
                     print("Block fetched. Preparing for sending...")
                     try:
@@ -124,9 +160,7 @@ class Server:
                             worker_available = True
                             waiting_for_response = False
                         else:
-                            # --------------------------
-                            # TUTAJ DO POPRAWY
-                            # If data is empty, the client has closed the connection
+                       
                             time.sleep(2)
                             print("Data received from client is empty. Removing client.")
                             self.remove_client(client_socket)
@@ -141,10 +175,7 @@ class Server:
             print(f"Error in sending message to the client: {e}")
             client_socket.close()
             self.remove_client(client_socket)
-            
-
-    def decrypt(self, client_socket, client_address, decrypted_queue):
-        pass
+        
 
 
     def remove_client(self, client_socket):
@@ -192,13 +223,12 @@ class Server:
                 client_socket, client_address = server_socket.accept()
                 print(f'Connected to {client_address}')
                 self.clients.append({"client_socket" : client_socket, "client_address" : client_address})
-
                
                 # Start a new thread to handle the client
                 client_thread = threading.Thread(target=self.handle_client, args=(client_socket, client_address, input_queue, self.results_queue))
                 self.client_threads.append(client_thread)
-
-                decryption_thread = threading.Thread(target=self.decrypt, args=(client_socket, client_address, self.decrypted_queue))
+                
+                decryption_thread = threading.Thread(target=self.handle_client, args=(client_socket, client_address, self.results_queue, self.decrypted_queue))
                 self.decryption_threads.append(decryption_thread)
 
             except Exception as e:
