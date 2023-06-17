@@ -25,9 +25,8 @@ class FileEncryptor:
                 total_bytes += line_bytes
 
                 if total_bytes >= block_size:
-                    block_dict = {"index": block_index, "data": block_data}
-                    blocks.append(block_dict)
-                    #print(f"Created block {block_index}")
+                    block_tuple = (block_index, block_data)
+                    blocks.append(block_tuple)
                     block_index += 1
 
                     block_data = line
@@ -36,58 +35,7 @@ class FileEncryptor:
                     block_data += line
 
             if block_data:
-                block_dict = {"index": block_index, "data": block_data}
-                blocks.append(block_dict)
+                block_tuple = (block_index, block_data)
+                blocks.append(block_tuple)
             print(f"Created blocks: {len(blocks)}")
         return blocks
-    
-    def encrypt_block(self, block):
-        salt = os.urandom(16)
-        password = b"password"
-
-        # Set up Scrypt with high parameters for slow key derivation
-        kdf = Scrypt(salt=salt, length=32, n=2**20, r=6, p=6)
-
-        # Derive a key from the password
-        key = kdf.derive(password)
-
-        cipher = Cipher(algorithms.AES(key), modes.ECB())
-        encryptor = cipher.encryptor()
-
-        # Pad the data to a multiple of the block size
-        padder = padding.PKCS7(algorithms.AES.block_size).padder()
-        padded_data = padder.update(block['data'].encode('utf-8')) + padder.finalize()
-
-        ciphertext = encryptor.update(padded_data) + encryptor.finalize()
-
-        return (block['index'], ciphertext, key)
-
-    # def encrypt_file(self, file_path):
-    #     cipher = ARC4.new(self.key)
-    #     with open(file_path, 'rb') as f:
-    #         plaintext = f.read()
-    #     ciphertext = cipher.encrypt(plaintext)
-    #     return ciphertext
-
-    # def process_file(self):
-    #     file_path = filedialog.askopenfilename()
-    #     dir_path = os.path.dirname(file_path)
-    #     encrypted_file_path = os.path.join(dir_path, 'encrypted.txt')
-
-    #     ciphertext = self.encrypt_file(file_path)
-    #     with open(encrypted_file_path, 'wb') as f:
-    #         f.write(ciphertext)
-
-    def decrypt_block(self, block):
-        # Now to decrypt
-        cipher = Cipher(algorithms.AES(block[2]), modes.ECB())
-        decryptor = cipher.decryptor()
-
-        # Decrypt the data
-        padded_data = decryptor.update(block[1]) + decryptor.finalize()
-
-        # Unpad the data
-        unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-        data = unpadder.update(padded_data) + unpadder.finalize()
-
-        return (block[0], data)
